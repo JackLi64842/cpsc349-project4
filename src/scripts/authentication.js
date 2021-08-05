@@ -1,4 +1,5 @@
 import * as mockroblog from './mockroblog.js'
+import * as helper from './helper.js'
 
 console.log('authentication.js called')
 
@@ -15,8 +16,7 @@ function login () {
   const userInfo = mockroblog.authenticateUser(usernameInput, passwordInput) // todo
   checkForLoginValidation(usernameInput, passwordInput, userInfo)
   if (userInfo) {
-    loginSession.setItem('id', userInfo.id)
-    loginSession.setItem('username', userInfo.username)
+    loginSession.setItem('user', JSON.stringify(userInfo))
     window.location.href = 'home_timeline.html'
   }
 }
@@ -55,16 +55,17 @@ function checkForLoginValidation (usernameInput, passwordInput, userInfo) {
   }
 }
 
-function register () {
+async function register () {
   const loginSession = window.sessionStorage
   const usernameInput = document.getElementById('registration-username').value
   const emailInput = document.getElementById('registration-email').value
   const passwordInput = document.getElementById('registration-password').value
   const confirmPasswordInput = document.getElementById('registration-confirm-password').value
-  const userInfo = mockroblog.createUser(usernameInput, emailInput, passwordInput) // todo
+  // const userInfo = mockroblog.createUser(usernameInput, emailInput, passwordInput) // todo
+  const userInfo = await helper.createUser(usernameInput, emailInput, passwordInput) // todo
+  console.log(userInfo)
   if (checkForRegistrationValidation(usernameInput, emailInput, passwordInput, confirmPasswordInput, userInfo)) {
-    loginSession.setItem('uid', userInfo.id)
-    loginSession.setItem('username', userInfo.username)
+    loginSession.setItem('user', JSON.stringify(userInfo))
     window.location.href = 'public_timeline.html'
   }
 }
@@ -86,8 +87,8 @@ function checkForRegistrationValidation (usernameInput, emailInput, passwordInpu
     registrationValidation.innerHTML = 'Error: Please confirm your password.'
   } else if (passwordInput !== confirmPasswordInput) {
     registrationValidation.innerHTML = 'Error: Passwords do not match.'
-  } else if (!userInfo) {
-    registrationValidation.innerHTML = 'Error: Username is already taken.'
+  } else if (userInfo === null) {
+    registrationValidation.innerHTML = 'Error: Username and/or email is already taken.'
   } else {
     return true
   }
