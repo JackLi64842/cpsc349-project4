@@ -1,5 +1,7 @@
 import { data } from "autoprefixer"
 
+// GET and POST request help from: https://www.digitalocean.com/community/tutorials/how-to-use-the-javascript-fetch-api-to-get-data
+// DELETE request help from: https://dev.to/silvenleaf/fetch-api-easiest-explanation-part-4-4-delete-by-silvenleaf-4376
 // Returns user object from an ID or username
 export function getUser (key) {
   let url = null
@@ -18,15 +20,6 @@ export function getUser (key) {
     .then((response) => response.json())
     .then((data) => {
       return data.resources[0]
-      //Old stuff; delete
-      // const users = data.resources
-      
-      // for (let i = 0; i < users.length; i++) {
-      //   if (users[i].id == key || users[i].username == key) {
-      //     return users[i]
-      //   }
-      // }
-      // return null
     })
 }
 
@@ -37,20 +30,10 @@ export function getFollowing (user) {
     .then((response) => response.json())
     .then((data) => {
       return data.resources
-      //Old stuff; delete
-      // return users
-      // let followingList =[]
-      // for (let i = 0; i < users.length; i++) {
-      //   if (users[i].follower_id == id) {
-      //     followingList.push(users[i].following_id)
-      //   }
-      // }
-      // return followingList
     })
 }
 
 // Returns Home Timeline posts as an array
-// Help from: https://www.digitalocean.com/community/tutorials/how-to-use-the-javascript-fetch-api-to-get-data
 export async function getHomeTimeline (user) {
   let following = await getFollowing(user)
   let timeline = []
@@ -63,26 +46,14 @@ export async function getHomeTimeline (user) {
       timeline.push(followedTimeline[j])
     }
   }
+  //todo sort by timestamp
+  //console.log(timeline)
   return timeline
-  //Old GET request; delete
-  // return fetch(url)
-  //   .then((response) => response.json())
-  //   .then((data) => {
-      
-  //     const posts = data.resources
-  //     for (let i = 0; i < posts.length; i++) {
-  //       if (following.includes(posts[i].user_id)) {
-  //         timeline.push(posts[i])
-  //       }
-  //     }
-  //     return timeline
-    // })
 }
 
 // Returns User Timeline posts as an array
-export  function getUserTimeline (user) {
-  const url = 'http://localhost:5000/posts/?user_id=' + user.id
-  
+export function getUserTimeline (user) {
+  const url = 'http://localhost:5000/posts/?sort=-timestamp&user_id=' + user.id
   return fetch(url)
     .then((response) => response.json())
     .then((data) => {
@@ -90,9 +61,8 @@ export  function getUserTimeline (user) {
     })
 }
 
-export  function getPublicTimeline () {
-  const url = 'http://localhost:5000/posts/'
-  
+export function getPublicTimeline () {
+  const url = 'http://localhost:5000/posts/?sort=-timestamp'
   return fetch(url)
     .then((response) => response.json())
     .then((data) => {
@@ -102,21 +72,11 @@ export  function getPublicTimeline () {
 
 // Returns the number of likes a post has
 export function getLikes(postId){
-  //const url = 'http://localhost:5000/likes'
   const url = 'http://localhost:5000/likes/?post_id=' + postId
   return fetch(url)
     .then((response) => response.json())
     .then((data) => {
       return data.resources.length
-      //Old stuff' delete
-      // const likeList = data.resources
-      // let likes = 0
-      // for (let i = 0; i < likeList.length; i++) {
-      //   if (likeList[i].post_id == postId) {
-      //     likes++
-      //   }
-      // }
-      // return likes
     })
 }
 
@@ -134,13 +94,6 @@ export function postLiked(postId, userId){
       else{
         return false
       }
-      // //Old stuff; delete
-      // for (let i = 0; i < likeList.length; i++) {
-      //   if (likeList[i].post_id == postId && likeList[i].user_id == userId) {
-      //     return true
-      //   }
-      // }
-      // return false
     })
 }
 
@@ -160,9 +113,48 @@ export function likePost(userId, postId){
   return fetch(request)
 }
 
+export async function getLikedPosts() {
+  let url = 'http://localhost:5000/likes/'
+
+  return fetch(url)
+  .then(response => response.json())
+  .then(data => {
+    return data.resources
+  })
+}
+
 // Unlike a post
-// export function unlikePost(postId, userId) {
-// }
+export async function unlikePost(userId, postToUnlikeId) {
+  let tableId = 0
+  let likedPosts = await getLikedPosts()
+  console.log(likedPosts)
+  for (let i = 0; i < likedPosts.length; i++) {
+    console.log(userId, likedPosts[i].user_id, postToUnlikeId, likedPosts[i].post_id)
+    if (userId === likedPosts[i].user_id && postToUnlikeId === likedPosts[i].post_id) {
+      tableId = likedPosts[i].id
+    }
+  }
+  let url = 'http://localhost:5000/likes/' + tableId
+  return fetch(url, {
+    method: 'DELETE',
+    headers: new Headers()
+  })
+}
+
+// Login
+export async function authenticateUser (username, password) {
+  let url = 'http://localhost:5000/users/?username=' + username + '&password=' + password
+  return fetch(url)
+  .then((response) => response.json())
+  .then((data) => {
+    console.log(data.resources[0])
+    return data.resources[0]
+  })
+  .catch(error => {
+    console.log(error)
+    return null
+  })
+}
 
 // Registration
 export async function createUser (username, email, password) {
@@ -189,7 +181,6 @@ export async function createUser (username, email, password) {
 }
 
 // New post
-
 export async function postMessage (userId, newPostText) {
   let url = 'http://localhost:5000/posts/'
 
@@ -210,4 +201,54 @@ export async function postMessage (userId, newPostText) {
     console.log(error)
     return null
   })
+}
+
+export async function addFollower(userId, userToFollowId)
+{
+  const url = 'http://localhost:5000/followers/'
+  return fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({
+      follower_id: userId,
+      following_id: userToFollowId
+    }),
+    headers: new Headers()
+  })
+  // .then(response => response.json())
+  .then(data => 
+    {
+      console.log(data)
+      return data
+    })
+  // .catch(error => {
+  //   console.log(error)
+  //   return null
+  // })
+}
+
+// Parameters: ID of current user, and ID of following user
+export async function removeFollower(user, userToUnfollowId)
+{
+  let tableId = 0
+  const followArr = await getFollowing(user)
+  for (let i = 0; i < followArr.length; i++) {
+    if (userToUnfollowId === followArr[i].following_id) {
+      tableId = followArr[i].id
+    }
+  }
+  const url = 'http://localhost:5000/followers/' + tableId
+  return fetch(url, {
+    method: 'DELETE',
+    headers: new Headers()
+  })
+  // .then(response => response.json())
+  .then(data => 
+    {
+      console.log(data)
+      return data
+    })
+  // .catch(error => {
+  //   console.log(error)
+  //   return null
+  // })
 }
